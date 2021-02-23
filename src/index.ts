@@ -3,18 +3,27 @@ import CalendarEvent = GoogleAppsScript.Calendar.CalendarEvent;
 function myFunction() {
     // This is clasp project
     // @see https://github.com/nexus4812/calendar-notifier/tree/main
-    getCalendarEventsByDate(new Date()).forEach((event: CalendarEvent) => {
-        sendMessage(`${event.getStartTime()} ~ ${event.getEndTime()} ${event.getTitle()} です`);
+
+
+    const now = new Date();
+
+    getCalendarEventsByDate(now).forEach((event: CalendarEvent) => {
+        sendMessage(`実施時間[${DateHelper.HHSS(event.getStartTime())}~${DateHelper.HHSS(event.getEndTime())}] イベント名[${event.getTitle()}]を開始します`);
     });
 }
 
 function sendMessage(message: string): void {
-    (new ChatWork(Env.chatWorkApiToken())).sendMessage(Number(Env.chatWorkRoomId()), {body: message});
+    const messageLink = (new ChatWork(Env.chatWorkApiToken())).sendMessage(Number(Env.chatWorkRoomId()), {body: message});
+    Logger.log(`Send message! ${messageLink}`);
 }
 
 const getCalendarEventsByDate = (date: Date): CalendarEvent[] => (CalendarApp.getDefaultCalendar().getEventsForDay(date));
 
+
+
 // ---------------------------------------------------------------------------------------------------
+
+
 
 type sendMessagePayload = {
     selfUnread?: boolean,
@@ -28,24 +37,28 @@ type postMessageResponse = {
 type httpMethod = 'post' | 'get';
 
 class ChatWork {
-    baseUrl: string;
+    webBaseUrl: string;
+    apiBaseUrl: string;
     headers: {};
 
     constructor(apiToken: string) {
-        this.baseUrl = 'https://api.chatwork.com/v2';
+        this.apiBaseUrl = 'https://api.chatwork.com/v2';
+        this.webBaseUrl = 'https://www.chatwork.com';
         this.headers = {'X-ChatWorkToken': apiToken};
     }
 
-    public sendMessage(roomId: number, payload: sendMessagePayload): postMessageResponse {
-        return this.sendRequest({
+    public sendMessage(roomId: number, payload: sendMessagePayload): string {
+        const r : postMessageResponse = this.sendRequest({
             path: `/rooms/${roomId}/messages`,
             method: "post",
             payload: payload,
-        })
+        });
+
+        return `${this.webBaseUrl}/#!rid${roomId}-${r.message_id}`
     };
 
     private sendRequest(params: { path: string, method: httpMethod, payload: object }): any {
-        const result = UrlFetchApp.fetch(this.baseUrl + params.path, {
+        const result = UrlFetchApp.fetch(this.apiBaseUrl + params.path, {
             'method': params.method,
             'headers': this.headers,
             'payload': params.payload || {}
@@ -59,7 +72,11 @@ class ChatWork {
     };
 }
 
+
+
 // ---------------------------------------------------------------------------------------------------
+
+
 
 class Env {
     public static chatWorkApiToken(): string {
@@ -80,3 +97,27 @@ class Env {
         return prop;
     };
 }
+
+
+
+// ------------------------------------------------------------------------------------------------------
+
+
+class DateHelper {
+
+    public static HHSS(date: any) {
+        return DateHelper.formatDate(date, 'HH:mm')
+    }
+
+    private static formatDate (date: any, format: string) {
+        format = format.replace(/yyyy/g, String(date.getFullYear()));
+        format = format.replace(/MM/g, ('0' + (date.getMonth() + 1)).slice(-2));
+        format = format.replace(/dd/g, ('0' + date.getDate()).slice(-2));
+        format = format.replace(/HH/g, ('0' + date.getHours()).slice(-2));
+        format = format.replace(/mm/g, ('0' + date.getMinutes()).slice(-2));
+        format = format.replace(/ss/g, ('0' + date.getSeconds()).slice(-2));
+        format = format.replace(/SSS/g, ('00' + date.getMilliseconds()).slice(-3));
+        return format;
+    };
+}
+
