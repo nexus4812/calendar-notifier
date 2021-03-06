@@ -26,6 +26,13 @@ function myFunction() {
 
     minutesAfter.setMinutes(now.getMinutes() + intervalMinutes);
 
+    // 終了します
+    getCalendarEventsByDate(now).forEach((event: CalendarEvent): void => {
+        if(now < event.getEndTime() && event.getEndTime() < minutesAfter) {
+            sendEndEvent(event);
+        }
+    });
+
     // 開始します
     getCalendarEventsByDate(now).forEach((event: CalendarEvent): void => {
         if(now < event.getStartTime() && event.getStartTime() < minutesAfter) {
@@ -33,12 +40,7 @@ function myFunction() {
         }
     });
 
-    // 終了します
-    getCalendarEventsByDate(now).forEach((event: CalendarEvent): void => {
-        if(now < event.getEndTime() && event.getEndTime() < minutesAfter) {
-            sendEndEvent(event);
-        }
-    });
+
 }
 
 
@@ -47,11 +49,11 @@ function myFunction() {
 type dateType = GoogleAppsScript.Base.Date & Date;
 
 function sendStartEvent(event: CalendarEvent): void {
-    sendMessage(`実施時間[${dateDecorator.HHSS(event.getStartTime())}~${dateDecorator.HHSS(event.getEndTime())}] イベント名[${event.getTitle()}]を開始します`);
+    sendMessage(`【${event.getTitle()}】を開始します(${dateDecorator.HHSS(event.getStartTime())}~${dateDecorator.HHSS(event.getEndTime())}) `);
 }
 
 function sendEndEvent(event: CalendarEvent): void {
-    sendMessage(`実施時間[${dateDecorator.HHSS(event.getStartTime())}~${dateDecorator.HHSS(event.getEndTime())}] イベント名[${event.getTitle()}]を終了します`);
+    sendMessage(`【${event.getTitle()}】を終了します(${dateDecorator.HHSS(event.getStartTime())}~${dateDecorator.HHSS(event.getEndTime())}) `);
 }
 
 function sendMessage(message: string): void {
